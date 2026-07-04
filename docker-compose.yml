@@ -1,0 +1,21 @@
+# Явное имя проекта: папка называется кириллицей ("Проект"),
+# из-за чего Docker Compose не может вывести имя автоматически.
+name: reminder-service
+
+services:
+  reminder:
+    build: .
+    image: reminder-service:latest
+    container_name: reminder-service
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      # Значение по умолчанию, если не задано в .env.
+      DATABASE_URL: sqlite:///./data/reminders.db
+    volumes:
+      # Персистентное хранилище SQLite между перезапусками.
+      - ./data:/app/data
