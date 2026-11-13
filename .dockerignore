@@ -1,0 +1,15 @@
+.git
+.gitignore
+.venv
+venv
+__pycache__
+*.pyc
+.pytest_cache
+data
+*.db
+*.sqlite3
+.env
+tests
+*.docx
+~$*.docx
+README.md

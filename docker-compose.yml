@@ -1,0 +1,75 @@
+name: reminder-service-owlucky
+
+services:
+  reminder:
+    build: .
+    image: reminder-service:latest
+    container_name: reminder-service
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DATABASE_URL: sqlite:///./data/reminders.db
+      INTERNAL_TOKEN: ${INTERNAL_TOKEN:-}
+    volumes:
+      - ./data:/app/data
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health').status==200 else 1)",
+        ]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+
+  # Один бот. Второй — сервис ниже, с другим токеном:
+  #   docker compose --profile bot2 up
+  telegram-worker:
+    build: .
+    image: reminder-service:latest
+    restart: on-failure
+    command: ["python", "-m", "workers.telegram"]
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      SERVICE_URL: http://reminder:8000
+      INTERNAL_TOKEN: ${INTERNAL_TOKEN:-}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+    depends_on:
+      reminder:
+        condition: service_healthy
+
+  telegram-worker-2:
+    profiles: ["bot2"]
+    build: .
+    image: reminder-service:latest
+    restart: on-failure
+    command: ["python", "-m", "workers.telegram"]
+    environment:
+      SERVICE_URL: http://reminder:8000
+      INTERNAL_TOKEN: ${INTERNAL_TOKEN:-}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN_2:-}
+    depends_on:
+      reminder:
+        condition: service_healthy
+
+  console-worker:
+    profiles: ["console"]
+    build: .
+    image: reminder-service:latest
+    restart: on-failure
+    command: ["python", "-m", "workers.console"]
+    environment:
+      SERVICE_URL: http://reminder:8000
+      INTERNAL_TOKEN: ${INTERNAL_TOKEN:-}
+    depends_on:
+      reminder:
+        condition: service_healthy
