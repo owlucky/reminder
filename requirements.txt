@@ -7,3 +7,6 @@ pydantic>=2.7
 pydantic-settings>=2.3
 python-dateutil>=2.9
 tzdata>=2024.1
+grpcio>=1.71
+grpcio-tools>=1.71
+protobuf>=7.35.1

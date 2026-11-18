@@ -25,8 +25,10 @@ class Settings(BaseSettings):
     task_lease_seconds: int = 60
     max_delivery_attempts: int = 5
 
-    # Нужны процессу-воркеру. Сервис их не использует для отправки.
+    # HTTP — напоминания и получатели. gRPC — очередь доставки для воркеров.
     service_url: str = "http://127.0.0.1:8000"
+    grpc_port: int = 50051
+    service_grpc_target: str = "localhost:50051"
     worker_id: str | None = None
     worker_poll_seconds: float = 1
 

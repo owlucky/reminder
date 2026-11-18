@@ -4,7 +4,8 @@ import logging
 import threading
 from collections.abc import Callable
 
-from workers.service_client import ServiceClient, ServiceError
+from workers.queue_client import QueueClient
+from workers.service_client import ServiceError
 
 log = logging.getLogger(__name__)
 
@@ -12,7 +13,7 @@ log = logging.getLogger(__name__)
 class PullLoop:
     def __init__(
         self,
-        client: ServiceClient,
+        client: QueueClient,
         *,
         worker_id: str,
         channel: str,

@@ -30,13 +30,13 @@
 сервис (один процесс)                воркеры (сколько угодно процессов)
   API + SQLite                         telegram   telegram-2   console   max
   formulator  — какие доставки пора         \        |         /        /
-  distributor — кому отдать задачу      POST /internal/tasks/next
-                                        POST /internal/tasks/{id}/result
+  distributor — gRPC :50051            RequestTask / SubmitResult
 
 app/
   main.py          — FastAPI и планировщик, без бота и без отправки
   formulator.py    — из наступивших напоминаний делает строки очереди
-  distributor.py   — аренда задачи воркером и приём результата
+  distributor.py   — аренда задачи и приём результата
+  grpc_server.py   — тот же распределитель по gRPC (RequestTask, SubmitResult)
   scheduler.py     — фоновый опрос (APScheduler)
   models.py        — Reminder, Recipient, DeliveryTask
 workers/
@@ -105,7 +105,7 @@ python -m workers.telegram
 3. Планировщик каждые `POLL_INTERVAL_SECONDS` секунд **формулирует** задачи:
    для каждого получателя, у которого наступил `момент_события - смещение`,
    в очередь попадает одна строка. Ключ дедупликации не даст поставить её дважды.
-4. Воркер своего канала опрашивает `POST /internal/tasks/next`, арендует задачу
+4. Воркер своего канала вызывает gRPC `RequestTask` (порт 50051), арендует задачу
    и после отправки сдаёт результат. Упал, не сдав результат — по истечении
    аренды задача снова доступна другому воркеру того же канала.
    Неудача повторяется с паузой, пока не исчерпан `MAX_DELIVERY_ATTEMPTS`.
@@ -246,8 +246,10 @@ id в базе.
 | --- | --- | --- |
 | `TELEGRAM_BOT_TOKEN` | Токен бота для процесса `workers.telegram` | — |
 | `TELEGRAM_BOT_TOKEN_2` | Токен второго бота (`--profile bot2`) | — |
-| `SERVICE_URL` | Адрес сервиса с точки зрения воркера | `http://127.0.0.1:8000` |
-| `INTERNAL_TOKEN` | Секрет заголовка `X-Internal-Token` | — |
+| `SERVICE_URL` | HTTP сервиса для бота | `http://127.0.0.1:8000` |
+| `SERVICE_GRPC_TARGET` | Адрес gRPC-очереди для воркера | `localhost:50051` |
+| `GRPC_PORT` | Порт gRPC внутри сервиса | `50051` |
+| `INTERNAL_TOKEN` | Секрет метаданных gRPC `x-internal-token` | — |
 | `DATABASE_URL` | Строка подключения к БД (только сервис) | `sqlite:///./data/reminders.db` |
 | `POLL_INTERVAL_SECONDS` | Как часто формулируются задачи | `30` |
 | `WORKER_POLL_SECONDS` | Пауза воркера, когда очередь пуста | `1` |

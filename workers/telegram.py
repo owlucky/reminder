@@ -14,6 +14,7 @@ import httpx
 
 from app.config import get_settings
 from workers.loop import PullLoop
+from workers.queue_client import QueueClient
 from workers.service_client import ServiceClient
 from workers.telegram_bot import TelegramBot
 
@@ -56,6 +57,7 @@ def main() -> None:
         level=settings.log_level.upper(),
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
     )
+    logging.getLogger("httpx").setLevel(logging.WARNING)
     token = settings.telegram_bot_token
     if not token:
         log.error("TELEGRAM_BOT_TOKEN не задан — воркер Telegram не запущен")
@@ -63,7 +65,8 @@ def main() -> None:
 
     route_key = bot_route_key(token, settings.telegram_api_base)
     worker_id = settings.worker_id or f"telegram-{route_key.split(':', 1)[1]}"
-    client = ServiceClient(settings.service_url, settings.internal_token)
+    api = ServiceClient(settings.service_url, settings.internal_token)
+    queue = QueueClient(settings.service_grpc_target, settings.internal_token)
     stop = threading.Event()
 
     def _request_stop(signum, frame) -> None:
@@ -73,10 +76,10 @@ def main() -> None:
     if hasattr(signal, "SIGTERM"):
         signal.signal(signal.SIGTERM, _request_stop)
 
-    bot = TelegramBot(token, settings.telegram_api_base, client, route_key)
+    bot = TelegramBot(token, settings.telegram_api_base, api, route_key)
     bot.start()
     loop = PullLoop(
-        client,
+        queue,
         worker_id=worker_id,
         channel="telegram",
         route_key=route_key,
@@ -88,7 +91,8 @@ def main() -> None:
         loop.run()
     finally:
         bot.stop()
-        client.close()
+        api.close()
+        queue.close()
 
 
 if __name__ == "__main__":

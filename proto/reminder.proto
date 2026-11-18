@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+// Очередь доставки. Воркеры сами забирают задачу и сдают результат,
+// как TaskDistributor в taxi. Управление напоминаниями остаётся на HTTP.
+
+service TaskDistributor {
+  rpc RequestTask(WorkerRequest) returns (TaskReply);
+  rpc SubmitResult(WorkerResult) returns (ResultAck);
+}
+
+message WorkerRequest {
+  string worker_id = 1;
+  string channel = 2;
+  // Пустая строка значит «у воркера нет своего ключа».
+  string route_key = 3;
+}
+
+message TaskReply {
+  bool has_task = 1;
+  int64 task_id = 2;
+  string channel = 3;
+  string address = 4;
+  string title = 5;
+  string body = 6;
+  string kind = 7;
+  string route_key = 8;
+}
+
+message WorkerResult {
+  string worker_id = 1;
+  int64 task_id = 2;
+  bool success = 3;
+  string message = 4;
+}
+
+message ResultAck {
+  bool accepted = 1;
+  string status = 2;
+}

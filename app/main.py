@@ -5,7 +5,8 @@ from fastapi import FastAPI
 
 from .config import get_settings
 from .database import init_db
-from .routers import internal, recipients, reminders, system
+from .grpc_server import start_grpc, stop_grpc
+from .routers import recipients, reminders, system
 from .scheduler import start_scheduler, stop_scheduler
 
 
@@ -17,11 +18,13 @@ async def lifespan(app: FastAPI):
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
     )
     init_db()
+    start_grpc()
     start_scheduler()
     try:
         yield
     finally:
         stop_scheduler()
+        stop_grpc()
 
 
 app = FastAPI(
@@ -39,7 +42,6 @@ app = FastAPI(
 app.include_router(system.router)
 app.include_router(recipients.router)
 app.include_router(reminders.router)
-app.include_router(internal.router)
 
 
 @app.get("/", include_in_schema=False)

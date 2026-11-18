@@ -8,6 +8,7 @@ services:
     restart: unless-stopped
     ports:
       - "8000:8000"
+      - "50051:50051"
     env_file:
       - path: .env
         required: false
@@ -41,6 +42,7 @@ services:
         required: false
     environment:
       SERVICE_URL: http://reminder:8000
+      SERVICE_GRPC_TARGET: reminder:50051
       INTERNAL_TOKEN: ${INTERNAL_TOKEN:-}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
     depends_on:
@@ -55,6 +57,7 @@ services:
     command: ["python", "-m", "workers.telegram"]
     environment:
       SERVICE_URL: http://reminder:8000
+      SERVICE_GRPC_TARGET: reminder:50051
       INTERNAL_TOKEN: ${INTERNAL_TOKEN:-}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN_2:-}
     depends_on:
@@ -69,6 +72,7 @@ services:
     command: ["python", "-m", "workers.console"]
     environment:
       SERVICE_URL: http://reminder:8000
+      SERVICE_GRPC_TARGET: reminder:50051
       INTERNAL_TOKEN: ${INTERNAL_TOKEN:-}
     depends_on:
       reminder:

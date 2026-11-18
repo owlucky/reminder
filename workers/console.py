@@ -7,7 +7,7 @@ import uuid
 
 from app.config import get_settings
 from workers.loop import PullLoop
-from workers.service_client import ServiceClient
+from workers.queue_client import QueueClient
 
 log = logging.getLogger(__name__)
 
@@ -37,9 +37,9 @@ def main() -> None:
         signal.signal(signal.SIGTERM, _request_stop)
 
     worker_id = settings.worker_id or f"console-{uuid.uuid4().hex[:8]}"
-    client = ServiceClient(settings.service_url, settings.internal_token)
+    queue = QueueClient(settings.service_grpc_target, settings.internal_token)
     loop = PullLoop(
-        client,
+        queue,
         worker_id=worker_id,
         channel="console",
         route_key=None,
@@ -50,7 +50,7 @@ def main() -> None:
     try:
         loop.run()
     finally:
-        client.close()
+        queue.close()
 
 
 if __name__ == "__main__":

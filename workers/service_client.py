@@ -1,4 +1,4 @@
-"""HTTP-клиент воркера к сервису напоминаний."""
+"""HTTP-клиент воркера: напоминания и получатели. Очередь доставки — в queue_client."""
 
 import httpx
 
@@ -42,35 +42,6 @@ class ServiceClient:
     def _raise(self, response: httpx.Response) -> None:
         if response.is_error:
             raise ServiceError(response.status_code, self._detail(response))
-
-    def lease(
-        self, worker_id: str, channel: str, route_key: str | None
-    ) -> dict | None:
-        response = self._http.post(
-            "/internal/tasks/next",
-            json={
-                "worker_id": worker_id,
-                "channel": channel,
-                "route_key": route_key,
-            },
-        )
-        if response.status_code == 204:
-            return None
-        self._raise(response)
-        return response.json()
-
-    def complete(
-        self, task_id: int, worker_id: str, success: bool, message: str | None = None
-    ) -> None:
-        response = self._http.post(
-            f"/internal/tasks/{task_id}/result",
-            json={
-                "worker_id": worker_id,
-                "success": success,
-                "message": message,
-            },
-        )
-        self._raise(response)
 
     def list_recipients(
         self, channel: str, address: str, route_key: str | None
